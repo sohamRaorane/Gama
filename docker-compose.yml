@@ -1,0 +1,214 @@
+# Defines all infrastructure services used by MeshPay
+services:
+
+  # PostgreSQL database service
+  postgres:
+
+    # Uses PostgreSQL version 18
+    image: postgres:18
+
+    # Gives the PostgreSQL container a fixed name
+    container_name: meshpay-postgres
+
+    # Restarts the container unless manually stopped
+    restart: unless-stopped
+
+    # Configures PostgreSQL credentials and default database
+    environment:
+
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+
+    # Exposes PostgreSQL on the host machine
+    ports:
+      - "5432:5432"
+
+    # Configures persistent storage and initialization scripts
+    volumes:
+
+      # Persists PostgreSQL data across container recreation
+      - postgres_data:/var/lib/postgresql
+
+      # Mounts database initialization scripts as read-only
+      - ./infrastructure/postgres/init:/docker-entrypoint-initdb.d:ro
+
+    # Checks whether PostgreSQL is ready to accept connections
+    healthcheck:
+
+      # Uses pg_isready to check PostgreSQL availability
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+
+      # Runs the healthcheck every 5 seconds
+      interval: 5s
+
+      # Allows 5 seconds for each healthcheck attempt
+      timeout: 5s
+
+      # Allows 10 failed attempts before marking it unhealthy
+      retries: 10
+
+    # Connects PostgreSQL to the shared MeshPay network
+    networks:
+      - meshpay-network
+
+
+  # Redis service for fast distributed state
+  redis:
+
+    # Uses Redis version 8.10.1
+    image: redis:8.10.1
+
+    # Gives the Redis container a fixed name
+    container_name: meshpay-redis
+
+    # Restarts the container unless manually stopped
+    restart: unless-stopped
+
+    # Exposes Redis on the host machine
+    ports:
+      - "6379:6379"
+
+    # Configures persistent Redis storage
+    volumes:
+
+      # Persists Redis data across container recreation
+      - redis_data:/data
+
+    # Enables Redis Append Only File persistence
+    command: ["redis-server", "--appendonly", "yes"]
+
+    # Checks whether Redis is responding
+    healthcheck:
+
+      # Sends PING and expects PONG from Redis
+      test: ["CMD", "redis-cli", "ping"]
+
+      # Runs the healthcheck every 5 seconds
+      interval: 5s
+
+      # Allows 3 seconds for each healthcheck attempt
+      timeout: 3s
+
+      # Allows 10 failed attempts before marking it unhealthy
+      retries: 10
+
+    # Connects Redis to the shared MeshPay network
+    networks:
+      - meshpay-network
+
+
+  # Kafka event broker for asynchronous communication
+  kafka:
+
+    # Uses Apache Kafka version 4.3.1
+    image: apache/kafka:4.3.1
+
+    # Gives the Kafka container a fixed name
+    container_name: meshpay-kafka
+
+    # Restarts the container unless manually stopped
+    restart: unless-stopped
+
+    # Exposes Kafka to the host machine
+    ports:
+      - "9092:9092"
+
+    # Configures Kafka and KRaft
+    environment:
+
+      # Assigns a unique ID to the Kafka node
+      KAFKA_NODE_ID: 1
+
+      # Runs Kafka as both broker and KRaft controller
+      KAFKA_PROCESS_ROLES: broker,controller
+
+      # Defines the single-node KRaft controller quorum
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+
+      # Defines Kafka's internal, controller, and host listeners
+      KAFKA_LISTENERS: PLAINTEXT://kafka:29092,CONTROLLER://kafka:9093,PLAINTEXT_HOST://0.0.0.0:9092
+
+      # Defines the addresses Kafka advertises to its clients
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+
+      # Maps Kafka listeners to their security protocols
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+
+      # Specifies the listener used for KRaft controller communication
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+
+      # Specifies the listener used for broker communication
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+
+      # Uses one replica for Kafka's internal offsets topic
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+      # Uses one replica for Kafka transaction state
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+
+      # Requires one in-sync replica for Kafka transactions
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+
+      # Removes the initial consumer group rebalance delay
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+
+      # Sets three default partitions for Kafka topics
+      KAFKA_NUM_PARTITIONS: 3
+
+    # Configures persistent Kafka storage
+    volumes:
+
+      # Persists Kafka data across container recreation
+      - kafka_data:/var/lib/kafka/data
+
+    # Checks whether Kafka is responding to broker requests
+    healthcheck:
+
+      # Uses Kafka's broker API command to check availability
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 > /dev/null 2>&1"]
+
+      # Runs the healthcheck every 10 seconds
+      interval: 10s
+
+      # Allows 10 seconds for each healthcheck attempt
+      timeout: 10s
+
+      # Allows 10 failed attempts before marking it unhealthy
+      retries: 10
+
+    # Connects Kafka to the shared MeshPay network
+    networks:
+      - meshpay-network
+
+
+# Defines the Docker networks used by MeshPay
+networks:
+
+  # Defines the shared MeshPay network
+  meshpay-network:
+
+    # Gives the network a fixed Docker name
+    name: meshpay-network
+
+
+# Defines persistent Docker volumes
+volumes:
+
+  # Defines persistent PostgreSQL storage
+  postgres_data:
+
+    # Gives the PostgreSQL volume a fixed name
+    name: meshpay-postgres-data
+
+  # Defines persistent Redis storage
+  redis_data:
+
+    # Gives the Redis volume a fixed name
+    name: meshpay-redis-data
+
+  # Defines persistent Kafka storage
+  kafka_data:
+
+    # Gives the Kafka volume a fixed name
+    name: meshpay-kafka-data
