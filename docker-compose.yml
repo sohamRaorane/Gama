@@ -22,7 +22,7 @@ services:
 
     # Exposes PostgreSQL on the host machine
     ports:
-      - "5432:5432"
+      - "${POSTGRES_HOST_PORT}:5432"
 
     # Configures persistent storage and initialization scripts
     volumes:
