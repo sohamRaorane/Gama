@@ -8,19 +8,26 @@ import jakarta.annotation.PostConstruct;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import javax.crypto.SecretKey;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 @Component
-@RequiredArgsConstructor
 public class JwtTokenProvider {
 
-    private final JwtProperties jwtProperties;
+    @Value("${app.jwt.secret}")
+    private String secret;
+
+    @Value("${app.jwt.issuer}")
+    private String issuer;
+
+    @Value("${app.jwt.expiration-ms}")
+    private long expirationMs;
+
     private SecretKey signingKey;
 
     @PostConstruct
     void init() {
-        byte[] keyBytes = jwtProperties.getSecret().getBytes(StandardCharsets.UTF_8);
+        byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);
         if (keyBytes.length < 32) {
             throw new IllegalStateException("JWT secret must be at least 32 bytes for HS256");
         }
@@ -29,10 +36,10 @@ public class JwtTokenProvider {
 
     public String generateToken(String bridgeId) {
         Date now = new Date();
-        Date expiry = new Date(now.getTime() + jwtProperties.getExpirationMs());
+        Date expiry = new Date(now.getTime() + expirationMs);
         return Jwts.builder()
                 .subject(bridgeId)
-                .issuer(jwtProperties.getIssuer())
+                .issuer(issuer)
                 .issuedAt(now)
                 .expiration(expiry)
                 .signWith(signingKey)
@@ -55,14 +62,14 @@ public class JwtTokenProvider {
     public Claims parseClaims(String token) {
         return Jwts.parser()
                 .verifyWith(signingKey)
-                .requireIssuer(jwtProperties.getIssuer())
+                .requireIssuer(issuer)
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
     }
 
     public long getExpirationMs() {
-        return jwtProperties.getExpirationMs();
+        return expirationMs;
     }
 
     public SecretKey getSigningKey() {
