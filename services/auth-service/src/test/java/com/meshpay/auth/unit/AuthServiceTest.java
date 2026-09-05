@@ -71,9 +71,9 @@ class AuthServiceTest {
 
         RegisterBridgeResponse resp = authService.register(req);
 
-        assertThat(resp.getBridgeId()).isEqualTo("bridge-001");
-        assertThat(resp.getCredentialIdentifier()).isEqualTo("cred-001");
-        assertThat(resp.getEnabled()).isTrue();
+        assertThat(resp.bridgeId()).isEqualTo("bridge-001");
+        assertThat(resp.credentialIdentifier()).isEqualTo("cred-001");
+        assertThat(resp.enabled()).isTrue();
         verify(passwordEncoder).encode("supersecret123");
         verify(bridgeRepository).save(any(Bridge.class));
     }
@@ -146,9 +146,9 @@ class AuthServiceTest {
         when(jwtTokenProvider.getExpirationMs()).thenReturn(3600000L);
 
         TokenResponse resp = authService.authenticate(req);
-        assertThat(resp.getAccessToken()).isEqualTo("jwt-token");
-        assertThat(resp.getTokenType()).isEqualTo("Bearer");
-        assertThat(resp.getExpiresIn()).isEqualTo(3600);
+        assertThat(resp.accessToken()).isEqualTo("jwt-token");
+        assertThat(resp.tokenType()).isEqualTo("Bearer");
+        assertThat(resp.expiresIn()).isEqualTo(3600);
     }
 
     @Test
