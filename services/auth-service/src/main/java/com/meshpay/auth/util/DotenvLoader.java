@@ -1,6 +1,8 @@
 package com.meshpay.auth.util;
 
 import java.io.IOException;
+import java.net.URISyntaxException;
+import java.security.CodeSource;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -21,7 +23,16 @@ public final class DotenvLoader {
     }
 
     public static void load() {
-        Path file = findDotenvFile();
+        if (isTestRuntime()) {
+            log.fine("Skipping .env loading during test runtime");
+            return;
+        }
+
+        loadFromSearchRoots(resolveCodeSourceDirectory(), Path.of("").toAbsolutePath().normalize());
+    }
+
+    static void loadFromSearchRoots(Path codeSourceDirectory, Path workingDirectory) {
+        Path file = findDotenvFile(codeSourceDirectory, workingDirectory);
         if (file == null) {
             log.info("No .env file found, using OS environment variables");
             return;
@@ -57,33 +68,11 @@ public final class DotenvLoader {
         log.info("Loaded " + loaded + " variables from .env");
     }
 
-    private static Path findDotenvFile() {
+    static Path findDotenvFile(Path codeSourceDirectory, Path workingDirectory) {
         List<Path> candidates = new ArrayList<>();
 
-        // 1. Next to the running JAR (java -jar mode)
-        String jarPath = System.getProperty("java.class.path");
-        if (jarPath != null && jarPath.endsWith(".jar")) {
-            Path jarDir = Path.of(jarPath).getParent();
-            if (jarDir != null) {
-                candidates.add(jarDir.resolve(".env"));
-            }
-        }
-
-        // 2. Next to the class file (IDE mode: target/classes → ../../.env)
-        try {
-            Path classDir = Path.of(
-                    DotenvLoader.class.getProtectionDomain()
-                            .getCodeSource().getLocation().toURI());
-            if (!classDir.toString().contains("!")) {
-                candidates.add(classDir.resolve("../../.env"));
-            }
-        } catch (Exception ignored) {
-        }
-
-        // 3. From current working directory upward
-        candidates.add(Path.of(".env"));
-        candidates.add(Path.of("../.env"));
-        candidates.add(Path.of("../../.env"));
+        addDotenvCandidates(candidates, codeSourceDirectory);
+        addDotenvCandidates(candidates, workingDirectory);
 
         for (Path candidate : candidates) {
             try {
@@ -93,6 +82,38 @@ public final class DotenvLoader {
             } catch (IOException ignored) {
             }
         }
+
         return null;
+    }
+
+    private static void addDotenvCandidates(List<Path> candidates, Path startDirectory) {
+        if (startDirectory == null) {
+            return;
+        }
+
+        for (Path current = startDirectory.toAbsolutePath().normalize(); current != null; current = current.getParent()) {
+            candidates.add(current.resolve(".env"));
+        }
+    }
+
+    private static Path resolveCodeSourceDirectory() {
+        try {
+            CodeSource codeSource = DotenvLoader.class.getProtectionDomain().getCodeSource();
+            if (codeSource == null || codeSource.getLocation() == null) {
+                return null;
+            }
+
+            Path location = Path.of(codeSource.getLocation().toURI()).toAbsolutePath().normalize();
+            return Files.isRegularFile(location) ? location.getParent() : location;
+        } catch (URISyntaxException e) {
+            throw new IllegalStateException("Unable to resolve application location", e);
+        }
+    }
+
+    private static boolean isTestRuntime() {
+        String classPath = System.getProperty("java.class.path", "");
+        return classPath.contains("surefire")
+                || classPath.contains("failsafe")
+                || classPath.contains("test-classes");
     }
 }
