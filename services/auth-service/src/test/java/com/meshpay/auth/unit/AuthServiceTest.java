@@ -124,7 +124,6 @@ class AuthServiceTest {
 
         authService.register(req);
         verify(passwordEncoder).encode("mySecret123");
-        // ensure encode called, and hash different from raw
         assertThat("$2a$10$hashed").isNotEqualTo("mySecret123");
     }
 
@@ -185,7 +184,6 @@ class AuthServiceTest {
 
     @Test
     void authenticate_genericFailureDoesNotLeakExistence() {
-        // both unknown user and wrong password produce same exception message
         TokenRequest unknown = TokenRequest.builder().credentialIdentifier("unknown").secret("secret").build();
         when(bridgeRepository.findByCredentialIdentifier("unknown")).thenReturn(Optional.empty());
 
@@ -195,8 +193,7 @@ class AuthServiceTest {
         when(bridgeRepository.findByCredentialIdentifier("cred-001")).thenReturn(Optional.of(bridge));
         when(passwordEncoder.matches("bad", "hashed")).thenReturn(false);
 
-        String msgUnknown = "";
-        String msgWrong = "";
+        String msgUnknown = "", msgWrong = "";
         try { authService.authenticate(unknown); } catch (AuthenticationFailedException e) { msgUnknown = e.getMessage(); }
         try { authService.authenticate(wrongPass); } catch (AuthenticationFailedException e) { msgWrong = e.getMessage(); }
 

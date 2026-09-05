@@ -28,60 +28,40 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(AbstractHttpConfigurer::disable) // Stateless APIs do not use browser CSRF protection.
+                .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // Never create server-side sessions.
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint((request, response, exAuth) ->
-                                writeError(
-                                        response,
-                                        HttpServletResponse.SC_UNAUTHORIZED,
-                                        "UNAUTHORIZED",
-                                        "Authentication required",
-                                        request.getRequestURI()
-                                ))
+                                writeError(response, HttpServletResponse.SC_UNAUTHORIZED,
+                                        "UNAUTHORIZED", "Authentication required", request.getRequestURI()))
                         .accessDeniedHandler((request, response, exDenied) ->
-                                writeError(
-                                        response,
-                                        HttpServletResponse.SC_FORBIDDEN,
-                                        "FORBIDDEN",
-                                        "Access denied",
-                                        request.getRequestURI()
-                                )))
+                                writeError(response, HttpServletResponse.SC_FORBIDDEN,
+                                        "FORBIDDEN", "Access denied", request.getRequestURI())))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/api/v1/auth/bridges/register",
                                 "/api/v1/auth/login",
                                 "/actuator/health"
-                        ).permitAll() // Registration, login, and health checks are public.
-                        .anyRequest().authenticated()) // Every other endpoint requires a valid JWT.
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class) // Validate JWT before standard authentication.
-                .httpBasic(AbstractHttpConfigurer::disable) // Disable HTTP Basic authentication.
-                .formLogin(AbstractHttpConfigurer::disable); // Disable browser form-based login.
+                        ).permitAll()
+                        .anyRequest().authenticated())
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .httpBasic(AbstractHttpConfigurer::disable)
+                .formLogin(AbstractHttpConfigurer::disable);
 
-        return http.build(); // Build the security filter chain.
+        return http.build();
     }
 
-    private void writeError(
-            HttpServletResponse response,
-            int status,
-            String error,
-            String message,
-            String path
-    ) throws IOException {
-
-        response.setStatus(status); // Set the HTTP status code.
-        response.setContentType(MediaType.APPLICATION_JSON_VALUE); // Return JSON.
-
-        objectMapper.writeValue(
-                response.getWriter(),
-                Map.of(
-                        "timestamp", Instant.now().toString(),
-                        "status", status,
-                        "error", error,
-                        "message", message,
-                        "path", path
-                )
-        ); // Serialize the security error as JSON.
+    private void writeError(HttpServletResponse response, int status, String error,
+                            String message, String path) throws IOException {
+        response.setStatus(status);
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        objectMapper.writeValue(response.getWriter(), Map.of(
+                "timestamp", Instant.now().toString(),
+                "status", status,
+                "error", error,
+                "message", message,
+                "path", path
+        ));
     }
 }

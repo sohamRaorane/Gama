@@ -10,7 +10,6 @@ import org.springframework.stereotype.Component;
 @Component
 @ConfigurationProperties(prefix = "app.jwt")
 public class JwtProperties {
-    //Setting up the JWT properties
     private String secret;
     private String issuer = "meshpay-auth";
     private long expirationMs = 3600000;

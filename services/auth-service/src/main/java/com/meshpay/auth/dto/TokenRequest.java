@@ -10,7 +10,4 @@ public record TokenRequest(
 
         @NotBlank(message = "secret must not be blank")
         String secret
-) {
-
-
-}
+) {}

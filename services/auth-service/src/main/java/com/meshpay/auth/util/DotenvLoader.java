@@ -2,18 +2,15 @@ package com.meshpay.auth.util;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.security.CodeSource;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.logging.Logger;
 
 /**
  * Loads environment variables from a .env file into system properties.
- * Searches in order: next to the running JAR, then from CWD upward.
- * Lines starting with # are comments. Empty lines are skipped.
- * Format: KEY=VALUE (one per line).
+ * Searches upward from the code source directory and from the working directory.
+ * Skips loading during test runtime to avoid interfering with test isolation.
  */
 public final class DotenvLoader {
 
@@ -24,15 +21,13 @@ public final class DotenvLoader {
 
     public static void load() {
         if (isTestRuntime()) {
-            log.fine("Skipping .env loading during test runtime");
             return;
         }
 
-        loadFromSearchRoots(resolveCodeSourceDirectory(), Path.of("").toAbsolutePath().normalize());
-    }
+        Path codeSourceDir = resolveCodeSourceDirectory();
+        Path workingDir = Path.of("").toAbsolutePath().normalize();
+        Path file = findDotenvFile(codeSourceDir, workingDir);
 
-    static void loadFromSearchRoots(Path codeSourceDirectory, Path workingDirectory) {
-        Path file = findDotenvFile(codeSourceDirectory, workingDirectory);
         if (file == null) {
             log.info("No .env file found, using OS environment variables");
             return;
@@ -42,21 +37,17 @@ public final class DotenvLoader {
         int loaded = 0;
 
         try {
-            List<String> lines = Files.readAllLines(file);
-            for (String line : lines) {
+            for (String line : Files.readAllLines(file)) {
                 String trimmed = line.trim();
                 if (trimmed.isEmpty() || trimmed.startsWith("#")) {
                     continue;
                 }
-
                 int eqIndex = trimmed.indexOf('=');
                 if (eqIndex <= 0) {
                     continue;
                 }
-
                 String key = trimmed.substring(0, eqIndex).trim();
                 String value = trimmed.substring(eqIndex + 1).trim();
-
                 System.setProperty(key, value);
                 loaded++;
             }
@@ -68,11 +59,11 @@ public final class DotenvLoader {
         log.info("Loaded " + loaded + " variables from .env");
     }
 
+    // Visible for testing
     static Path findDotenvFile(Path codeSourceDirectory, Path workingDirectory) {
-        List<Path> candidates = new ArrayList<>();
-
-        addDotenvCandidates(candidates, codeSourceDirectory);
-        addDotenvCandidates(candidates, workingDirectory);
+        java.util.List<Path> candidates = new ArrayList<>();
+        addCandidates(candidates, codeSourceDirectory);
+        addCandidates(candidates, workingDirectory);
 
         for (Path candidate : candidates) {
             try {
@@ -82,27 +73,25 @@ public final class DotenvLoader {
             } catch (IOException ignored) {
             }
         }
-
         return null;
     }
 
-    private static void addDotenvCandidates(List<Path> candidates, Path startDirectory) {
+    private static void addCandidates(java.util.List<Path> candidates, Path startDirectory) {
         if (startDirectory == null) {
             return;
         }
-
-        for (Path current = startDirectory.toAbsolutePath().normalize(); current != null; current = current.getParent()) {
+        for (Path current = startDirectory.toAbsolutePath().normalize();
+             current != null; current = current.getParent()) {
             candidates.add(current.resolve(".env"));
         }
     }
 
     private static Path resolveCodeSourceDirectory() {
         try {
-            CodeSource codeSource = DotenvLoader.class.getProtectionDomain().getCodeSource();
+            var codeSource = DotenvLoader.class.getProtectionDomain().getCodeSource();
             if (codeSource == null || codeSource.getLocation() == null) {
                 return null;
             }
-
             Path location = Path.of(codeSource.getLocation().toURI()).toAbsolutePath().normalize();
             return Files.isRegularFile(location) ? location.getParent() : location;
         } catch (URISyntaxException e) {

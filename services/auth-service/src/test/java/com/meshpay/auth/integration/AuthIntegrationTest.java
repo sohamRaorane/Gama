@@ -78,7 +78,7 @@ class AuthIntegrationTest {
         Bridge bridge = persisted.get();
         assertThat(bridge.getCredentialHash()).isNotEqualTo("supersecret123");
         assertThat(bridge.getCredentialHash()).startsWith("$2a$");
-        assertThat(bridge.getEnabled()).isTrue();
+        assertThat(bridge.isEnabled()).isTrue();
         assertThat(bridge.getCreatedAt()).isNotNull();
         assertThat(bridge.getUpdatedAt()).isNotNull();
 
@@ -166,7 +166,7 @@ class AuthIntegrationTest {
                 .credentialIdentifier("cred-token-001")
                 .secret("validsecret123")
                 .build();
-        MvcResult result = mockMvc.perform(post("/api/v1/auth/token")
+        MvcResult result = mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(tokenReq)))
                 .andExpect(status().isOk())
@@ -198,7 +198,7 @@ class AuthIntegrationTest {
                 .credentialIdentifier("cred-token-fail-001")
                 .secret("wrongsecret123")
                 .build();
-        mockMvc.perform(post("/api/v1/auth/token")
+        mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(bad)))
                 .andExpect(status().isUnauthorized())
@@ -211,7 +211,7 @@ class AuthIntegrationTest {
                 .credentialIdentifier("nonexistent-cred")
                 .secret("whatever123")
                 .build();
-        mockMvc.perform(post("/api/v1/auth/token")
+        mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isUnauthorized())
@@ -238,7 +238,7 @@ class AuthIntegrationTest {
                 .credentialIdentifier("cred-protected-001")
                 .secret("validsecret123")
                 .build();
-        MvcResult tokenResult = mockMvc.perform(post("/api/v1/auth/token")
+        MvcResult tokenResult = mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(tokenReq)))
                 .andExpect(status().isOk()).andReturn();
@@ -283,7 +283,7 @@ class AuthIntegrationTest {
                 .credentialIdentifier("cred-disabled-001")
                 .secret("validsecret123")
                 .build();
-        mockMvc.perform(post("/api/v1/auth/token")
+        mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isUnauthorized());

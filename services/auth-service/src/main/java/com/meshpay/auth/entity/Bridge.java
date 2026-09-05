@@ -30,7 +30,6 @@
         @Column(name = "id", nullable = false, updatable = false)
         private UUID id;
 
-        //Domain Identity
         @Column(name = "bridge_id", nullable = false, unique = true, length = 100)
         private String bridgeId;
 
@@ -40,7 +39,6 @@
         @Column(name = "credential_hash", nullable = false, length = 255)
         private String credentialHash;
 
-        //Builder does protect my default value and do not ignores it
         @Builder.Default
         @Column(name = "enabled", nullable = false)
         private boolean enabled = true;
@@ -52,11 +50,4 @@
         @UpdateTimestamp
         @Column(name = "updated_at", nullable = false)
         private Instant updatedAt;
-        public Boolean getEnabled() {
-            return enabled;
-        }
-
-        public void setEnabled(Boolean enabled) {
-            this.enabled = enabled;
-        }
     }

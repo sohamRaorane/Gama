@@ -11,7 +11,6 @@ public record RegisterBridgeRequest(
     @Size(min = 3, max = 100, message = "bridgeId must be between 3 and 100 characters")
     String bridgeId,
 
-    //Identifier used to authenticate/login
     @NotBlank(message = "credentialIdentifier must not be blank")
     @Size(min = 3, max = 100, message = "credentialIdentifier must be between 3 and 100 characters")
     String credentialIdentifier,
@@ -19,6 +18,4 @@ public record RegisterBridgeRequest(
     @NotBlank(message = "secret must not be blank")
     @Size(min = 8, max = 100, message = "secret must be between 8 and 100 characters")
     String secret
-){
-
-}
+) {}

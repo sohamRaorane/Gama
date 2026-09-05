@@ -1,7 +1,6 @@
 package com.meshpay.auth;
 
 import com.meshpay.auth.util.DotenvLoader;
-import jakarta.annotation.PostConstruct;
 import java.util.TimeZone;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -16,10 +15,5 @@ public class AuthServiceApplication {
 	public static void main(String[] args) {
 		TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
 		SpringApplication.run(AuthServiceApplication.class, args);
-	}
-
-	@PostConstruct
-	void init() {
-		TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
 	}
 }

@@ -19,52 +19,36 @@ import org.springframework.web.filter.OncePerRequestFilter;
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    //Constant Definitions
     private static final String BEARER_PREFIX = "Bearer ";
     private static final String BRIDGE_ROLE = "ROLE_BRIDGE";
 
     private final JwtTokenProvider jwtTokenProvider;
 
     @Override
-    protected void doFilterInternal(
-            HttpServletRequest request,
-            HttpServletResponse response,
-            FilterChain filterChain
-    ) throws ServletException, IOException {
-
-        String token = resolveToken(request); // Extract the Bearer token from the request.
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
+                                    FilterChain filterChain) throws ServletException, IOException {
+        String token = resolveToken(request);
 
         if (StringUtils.hasText(token)
                 && SecurityContextHolder.getContext().getAuthentication() == null
-                && jwtTokenProvider.validateToken(token)) { // Authenticate only an unverified request with a valid JWT.
+                && jwtTokenProvider.validateToken(token)) {
 
-            String bridgeId = jwtTokenProvider.getBridgeIdFromToken(token); // Extract the bridge identity from the JWT.
+            String bridgeId = jwtTokenProvider.getBridgeIdFromToken(token);
 
             var authentication = new UsernamePasswordAuthenticationToken(
-                    bridgeId,
-                    null,
-                    List.of(new SimpleGrantedAuthority(BRIDGE_ROLE))
-            ); // Create Spring Security authentication for the bridge.
-
-            authentication.setDetails(
-                    new WebAuthenticationDetailsSource().buildDetails(request)
-            ); // Attach request metadata to the authentication.
-
-            SecurityContextHolder.getContext().setAuthentication(authentication); // Store authentication for this request.
+                    bridgeId, null, List.of(new SimpleGrantedAuthority(BRIDGE_ROLE)));
+            authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+            SecurityContextHolder.getContext().setAuthentication(authentication);
         }
 
-        filterChain.doFilter(request, response); // Continue processing the request.
+        filterChain.doFilter(request, response);
     }
 
-
     private String resolveToken(HttpServletRequest request) {
-        String authorization = request.getHeader("Authorization"); // Read the Authorization header.
-
-        if (StringUtils.hasText(authorization)
-                && authorization.startsWith(BEARER_PREFIX)) { // Check for the Bearer authentication scheme.
-            return authorization.substring(BEARER_PREFIX.length()).trim(); // Return only the JWT.
+        String authorization = request.getHeader("Authorization");
+        if (StringUtils.hasText(authorization) && authorization.startsWith(BEARER_PREFIX)) {
+            return authorization.substring(BEARER_PREFIX.length()).trim();
         }
-
-        return null; // No usable JWT was provided.
+        return null;
     }
 }

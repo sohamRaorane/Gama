@@ -50,7 +50,7 @@ public class AuthService {
         return new RegisterBridgeResponse(
                 saved.getBridgeId(),
                 saved.getCredentialIdentifier(),
-                saved.getEnabled(),
+                saved.isEnabled(),
                 saved.getCreatedAt()
         );
     }
@@ -63,7 +63,7 @@ public class AuthService {
                         new AuthenticationFailedException("Invalid credentials")
                 );
 
-        if (Boolean.FALSE.equals(bridge.getEnabled())) {
+        if (!bridge.isEnabled()) {
             throw new AuthenticationFailedException("Invalid credentials");
         }
 

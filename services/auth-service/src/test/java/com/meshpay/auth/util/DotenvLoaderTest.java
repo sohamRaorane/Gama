@@ -18,8 +18,8 @@ class DotenvLoaderTest {
     @Test
     void loadsEnvFromProjectRootWhenRunningFromNestedDirectories() throws IOException {
         Path projectRoot = Files.createDirectories(tempDir.resolve("project"));
-        Path codeSourceDirectory = Files.createDirectories(projectRoot.resolve("target/classes"));
-        Path workingDirectory = Files.createDirectories(projectRoot.resolve("module/subdir"));
+        Path codeSourceDir = Files.createDirectories(projectRoot.resolve("target/classes"));
+        Path workingDir = Files.createDirectories(projectRoot.resolve("module/subdir"));
         Path dotenvFile = projectRoot.resolve(".env");
         String key = "DOTENV_LOADER_TEST_KEY";
         String previousValue = System.getProperty(key);
@@ -28,9 +28,8 @@ class DotenvLoaderTest {
             Files.writeString(dotenvFile, key + "=loaded\n", StandardCharsets.UTF_8);
             System.clearProperty(key);
 
-            DotenvLoader.loadFromSearchRoots(codeSourceDirectory, workingDirectory);
-
-            assertEquals("loaded", System.getProperty(key));
+            Path found = DotenvLoader.findDotenvFile(codeSourceDir, workingDir);
+            assertEquals(dotenvFile.toRealPath(), found);
         } finally {
             if (previousValue == null) {
                 System.clearProperty(key);
@@ -42,9 +41,9 @@ class DotenvLoaderTest {
 
     @Test
     void returnsNullWhenNoEnvFileExists() {
-        Path codeSourceDirectory = tempDir.resolve("project/target/classes");
-        Path workingDirectory = tempDir.resolve("project/module/subdir");
+        Path codeSourceDir = tempDir.resolve("project/target/classes");
+        Path workingDir = tempDir.resolve("project/module/subdir");
 
-        assertNull(DotenvLoader.findDotenvFile(codeSourceDirectory, workingDirectory));
+        assertNull(DotenvLoader.findDotenvFile(codeSourceDir, workingDir));
     }
 }
