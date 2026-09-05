@@ -1,0 +1,50 @@
+spring:
+  application:
+    name: auth-service
+
+  datasource:
+    url: jdbc:postgresql://127.0.0.1:5433/auth_db
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc.time_zone: UTC
+
+  flyway:
+    enabled: true
+
+server:
+  port: 8081
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+  health:
+    db:
+      enabled: true
+
+app:
+  jwt:
+    secret: ${JWT_SECRET}
+    issuer: meshpay-auth
+    expiration-ms: 3600000
+
+logging:
+  level:
+    com.meshpay.auth: INFO
+    org.springframework.security: WARN
+    org.hibernate.SQL: WARN
