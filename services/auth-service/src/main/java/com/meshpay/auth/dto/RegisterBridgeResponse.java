@@ -7,15 +7,10 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-@Getter
-@Setter
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class RegisterBridgeResponse {
 
-    private String bridgeId;
-    private String credentialIdentifier;
-    private Boolean enabled;
-    private Instant createdAt;
-}
+public record RegisterBridgeResponse(
+        String bridgeId,
+        String credentialIdentifier,
+        Boolean enabled,
+        Instant createdAt
+) {}

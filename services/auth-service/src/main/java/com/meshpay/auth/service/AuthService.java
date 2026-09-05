@@ -24,44 +24,53 @@ public class AuthService {
 
     @Transactional
     public RegisterBridgeResponse register(RegisterBridgeRequest request) {
-        if (bridgeRepository.existsByBridgeId(request.getBridgeId())) {
-            throw new DuplicateResourceException("Bridge with bridgeId '" + request.getBridgeId() + "' already exists");
-        }
-        if (bridgeRepository.existsByCredentialIdentifier(request.getCredentialIdentifier())) {
+        if (bridgeRepository.existsByBridgeId(request.bridgeId())) {
             throw new DuplicateResourceException(
-                    "Bridge with credentialIdentifier '" + request.getCredentialIdentifier() + "' already exists");
+                    "Bridge with bridgeId '" + request.bridgeId() + "' already exists"
+            );
         }
 
-        String hashed = passwordEncoder.encode(request.getSecret());
+        if (bridgeRepository.existsByCredentialIdentifier(request.credentialIdentifier())) {
+            throw new DuplicateResourceException(
+                    "Bridge with credentialIdentifier '" + request.credentialIdentifier() + "' already exists"
+            );
+        }
+
+        String hashed = passwordEncoder.encode(request.secret());
 
         Bridge bridge = Bridge.builder()
-                .bridgeId(request.getBridgeId())
-                .credentialIdentifier(request.getCredentialIdentifier())
+                .bridgeId(request.bridgeId())
+                .credentialIdentifier(request.credentialIdentifier())
                 .credentialHash(hashed)
                 .enabled(true)
                 .build();
 
         Bridge saved = bridgeRepository.save(bridge);
 
-        return RegisterBridgeResponse.builder()
-                .bridgeId(saved.getBridgeId())
-                .credentialIdentifier(saved.getCredentialIdentifier())
-                .enabled(saved.getEnabled())
-                .createdAt(saved.getCreatedAt())
-                .build();
+        return new RegisterBridgeResponse(
+                saved.getBridgeId(),
+                saved.getCredentialIdentifier(),
+                saved.getEnabled(),
+                saved.getCreatedAt()
+        );
     }
 
     @Transactional(readOnly = true)
     public TokenResponse authenticate(TokenRequest request) {
         Bridge bridge = bridgeRepository
-                .findByCredentialIdentifier(request.getCredentialIdentifier())
-                .orElseThrow(() -> new AuthenticationFailedException("Invalid credentials"));
+                .findByCredentialIdentifier(request.credentialIdentifier())
+                .orElseThrow(() ->
+                        new AuthenticationFailedException("Invalid credentials")
+                );
 
         if (Boolean.FALSE.equals(bridge.getEnabled())) {
             throw new AuthenticationFailedException("Invalid credentials");
         }
 
-        if (!passwordEncoder.matches(request.getSecret(), bridge.getCredentialHash())) {
+        if (!passwordEncoder.matches(
+                request.secret(),
+                bridge.getCredentialHash()
+        )) {
             throw new AuthenticationFailedException("Invalid credentials");
         }
 

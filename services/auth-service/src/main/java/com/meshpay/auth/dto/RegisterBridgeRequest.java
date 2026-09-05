@@ -8,22 +8,22 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-@Getter
-@Setter
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class RegisterBridgeRequest {
+
+
+public record RegisterBridgeRequest(
 
     @NotBlank(message = "bridgeId must not be blank")
     @Size(min = 3, max = 100, message = "bridgeId must be between 3 and 100 characters")
-    private String bridgeId;
+    String bridgeId,
 
+    //Identifier used to authenticate/login
     @NotBlank(message = "credentialIdentifier must not be blank")
     @Size(min = 3, max = 100, message = "credentialIdentifier must be between 3 and 100 characters")
-    private String credentialIdentifier;
+    String credentialIdentifier,
 
     @NotBlank(message = "secret must not be blank")
     @Size(min = 8, max = 100, message = "secret must be between 8 and 100 characters")
-    private String secret;
+    String secret
+){
+
 }

@@ -7,16 +7,14 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-@Getter
-@Setter
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class TokenRequest {
 
-    @NotBlank(message = "credentialIdentifier must not be blank")
-    private String credentialIdentifier;
+public record TokenRequest(
+        @NotBlank(message = "credentialIdentifier must not be blank")
+        String credentialIdentifier,
 
-    @NotBlank(message = "secret must not be blank")
-    private String secret;
+        @NotBlank(message = "secret must not be blank")
+        String secret
+) {
+
+
 }
