@@ -4,8 +4,8 @@ spring:
 
   datasource:
     url: jdbc:postgresql://127.0.0.1:5433/auth_db
-    username: soham
-    password: soham1234
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 10
@@ -41,7 +41,7 @@ management:
 
 app:
   jwt:
-    secret: ${JWT_SECRET:dev-secret-key-that-is-at-least-256-bits-long-for-hs256-algorithm-testing-only-change-in-prod-123456}
+    secret: ${JWT_SECRET}
     issuer: meshpay-auth
     expiration-ms: 3600000
 
