@@ -8,9 +8,12 @@ import jakarta.annotation.PostConstruct;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import javax.crypto.SecretKey;
+
+import lombok.Getter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+@Getter
 @Component
 public class JwtTokenProvider {
 
@@ -68,11 +71,13 @@ public class JwtTokenProvider {
                 .getPayload();
     }
 
-    public long getExpirationMs() {
+    public long ExpirationMs() {
         return expirationMs;
     }
-
+    /*
     public SecretKey getSigningKey() {
         return signingKey;
     }
+     */
+
 }

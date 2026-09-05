@@ -1,4 +1,4 @@
-package com.meshpay.auth.util;
+package com.meshpay.auth;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
