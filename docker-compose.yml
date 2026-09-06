@@ -182,6 +182,48 @@ services:
       - meshpay-network
 
 
+  # Auth Service — bridge authentication and JWT
+  auth-service:
+
+    build: ./services/auth-service
+    container_name: meshpay-auth
+
+    ports:
+      - "8081:8081"
+
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/auth_db
+      DB_USERNAME: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    networks:
+      - meshpay-network
+
+
+  # API Gateway — routing, correlation ID, rate-limit stub
+  gateway-service:
+
+    build: ./services/gateway-service
+    container_name: meshpay-gateway
+
+    ports:
+      - "8080:8080"
+
+    environment:
+      AUTH_SERVICE_URI: http://auth-service:8081
+
+    depends_on:
+      - auth-service
+
+    networks:
+      - meshpay-network
+
+
 # Defines the Docker networks used by MeshPay
 networks:
 
