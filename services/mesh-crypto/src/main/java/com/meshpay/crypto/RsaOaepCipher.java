@@ -24,8 +24,10 @@ public final class RsaOaepCipher {
 
     // RSA encryption using Optimal Asymmetric Encryption Padding (OAEP)
     // OAEP is chosen over PKCS#1 v1.5 because it provides provable security
-    // against chosen-ciphertext attacks
-    private static final String TRANSFORMATION = "RSA/ECB/OAEP/NoPadding";
+    // against chosen-ciphertext attacks.
+    // We use the standard JCE transformation name which accepts OAEPParameterSpec
+    // to override the default digest and MGF1 algorithms below.
+    private static final String TRANSFORMATION = "RSA/ECB/OAEPWithSHA-256AndMGF1Padding";
 
     // 2048-bit RSA key provides ~112 bits of classical security strength,
     // sufficient for protecting session keys in this context
