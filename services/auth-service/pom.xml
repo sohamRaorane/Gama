@@ -15,7 +15,7 @@
 	<description>MeshPay Auth Service - Bridge Authentication and JWT</description>
 
 	<properties>
-		<java.version>21</java.version>
+		<java.version>20</java.version>
 		<jjwt.version>0.12.6</jjwt.version>
 		<testcontainers.version>1.19.8</testcontainers.version>
 	</properties>
