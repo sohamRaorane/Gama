@@ -1,6 +1,7 @@
 package com.meshpay.simulator;
 
 import com.meshpay.crypto.model.MeshPacket;
+import lombok.Getter;
 
 import java.util.*;
 
@@ -17,6 +18,7 @@ import java.util.*;
 public class VirtualDevice {
 
     // Unique identifier for this simulated device
+    @Getter
     private final String deviceId;
 
     // Whether this device has internet connectivity.
@@ -136,10 +138,6 @@ public class VirtualDevice {
      */
     public MeshPacket getPacket(UUID packetId) {
         return packetStore.get(packetId);
-    }
-
-    public String getDeviceId() {
-        return deviceId;
     }
 
     public boolean hasInternet() {
