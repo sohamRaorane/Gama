@@ -33,6 +33,15 @@ public record MeshPacket(
         return ciphertext != null ? ciphertext.clone() : null;
     }
 
+    /**
+     * Returns a new MeshPacket with TTL decremented by one.
+     * All other fields (packetId, wrappedAesKey, iv, ciphertext, createdAt) remain identical.
+     * Used by the mesh simulator to relay packets hop by hop.
+     */
+    public MeshPacket withDecrementedTtl() {
+        return new MeshPacket(packetId, wrappedAesKey, iv, ciphertext, ttl - 1, createdAt);
+    }
+
     public boolean isExpired() {
         if (createdAt == null) return true;
         return Instant.now().isAfter(createdAt.plusSeconds(ttl));
