@@ -5,7 +5,6 @@ import com.meshpay.crypto.model.MeshPacket;
 import com.meshpay.crypto.model.PaymentInstruction;
 
 import javax.crypto.SecretKey;
-import java.security.KeyPair;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.time.Instant;

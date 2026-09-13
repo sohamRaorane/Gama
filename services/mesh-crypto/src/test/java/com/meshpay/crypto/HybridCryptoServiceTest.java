@@ -1,12 +1,10 @@
 package com.meshpay.crypto;
 
-import com.meshpay.crypto.model.EncryptedPayload;
 import com.meshpay.crypto.model.MeshPacket;
 import com.meshpay.crypto.model.PaymentInstruction;
 import org.junit.jupiter.api.Test;
 
 import javax.crypto.AEADBadTagException;
-import javax.crypto.SecretKey;
 import java.security.KeyPair;
 import java.time.Instant;
 import java.util.Arrays;
