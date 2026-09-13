@@ -22,7 +22,6 @@ public class VirtualDevice {
     private final String deviceId;
 
     // Whether this device has internet connectivity.
-    // Not used in Day 8 — exists for future online/offline device distinction.
     private final boolean hasInternet;
 
     // Local packet store keyed by packetId for O(1) duplicate detection.
