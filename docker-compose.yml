@@ -224,6 +224,28 @@ services:
       - meshpay-network
 
 
+  # Ingestion Service — packet ingestion from bridges
+  ingestion-service:
+
+    build: ./services/ingestion-service
+    container_name: meshpay-ingestion
+
+    ports:
+      - "8082:8082"
+
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/ingestion_db
+      DB_USERNAME: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    networks:
+      - meshpay-network
+
+
 # Defines the Docker networks used by MeshPay
 networks:
 
