@@ -22,6 +22,11 @@ spring:
   flyway:
     enabled: true
 
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
 server:
   port: 8082
 
@@ -41,3 +46,14 @@ logging:
   level:
     com.meshpay.ingestion: INFO
     org.hibernate.SQL: WARN
+
+app:
+  jwt:
+    secret: ${JWT_SECRET}
+    issuer: meshpay-auth
+    expiration-ms: 3600000
+
+meshpay:
+  rate-limit:
+    capacity: 10
+    refill-rate: 5
