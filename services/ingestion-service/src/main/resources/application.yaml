@@ -1,7 +1,14 @@
+# =============================================================================
+# Ingestion Service Configuration
+# =============================================================================
+# Loads environment variables from .env (via DotenvLoader) for placeholders
+# like ${DB_URL}, ${JWT_SECRET}, etc. Docker Compose sets these via environment.
+
 spring:
   application:
     name: ingestion-service
 
+  # --- PostgreSQL connection (ingestion_db, port 5433 on host) ---
   datasource:
     url: ${DB_URL:jdbc:postgresql://127.0.0.1:5433/ingestion_db}
     username: ${DB_USERNAME}
@@ -11,6 +18,9 @@ spring:
       maximum-pool-size: 10
       minimum-idle: 2
 
+  # --- JPA / Hibernate ---
+  # ddl-auto=validate: schema is managed exclusively by Flyway migrations,
+  # Hibernate only verifies the entity mappings match the database schema.
   jpa:
     hibernate:
       ddl-auto: validate
@@ -19,17 +29,26 @@ spring:
       hibernate:
         jdbc.time_zone: UTC
 
+  # --- Flyway database migrations ---
+  # Runs SQL scripts in src/main/resources/db/migration/ (V1__baseline.sql, etc.)
   flyway:
     enabled: true
 
+  # --- Redis connection (rate limiter) ---
+  # Docker Compose sets REDIS_HOST=redis (service name on meshpay-network).
+  # Local development defaults to localhost:6379.
   data:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
 
+# --- HTTP server port ---
 server:
   port: 8082
 
+# --- Actuator (health checks only) ---
+# Only /actuator/health is exposed — needed by Docker healthchecks.
+# JwtAuthenticationFilter skips /actuator paths (no auth required).
 management:
   endpoints:
     web:
@@ -42,17 +61,27 @@ management:
     db:
       enabled: true
 
+# --- Logging ---
 logging:
   level:
     com.meshpay.ingestion: INFO
     org.hibernate.SQL: WARN
 
+# --- JWT configuration ---
+# secret: shared HS256 key with auth-service (from JWT_SECRET env var / .env).
+#   Must be ≥ 32 bytes. If missing, JwtTokenProvider.init() throws at startup.
+# issuer: must match auth-service's app.jwt.issuer ("meshpay-auth").
 app:
   jwt:
     secret: ${JWT_SECRET}
     issuer: meshpay-auth
     expiration-ms: 3600000
 
+# --- Per-bridge rate limiting (token bucket in Redis) ---
+# capacity: maximum burst size — each bridge starts with this many tokens.
+# refill-rate: tokens added per second after burst is exhausted.
+# Defaults: capacity=10 (burst of 10), refill=5/sec (1 token per 200ms).
+# Redis key format: rate_limit:{bridgeId} (hash with 'tokens' and 'ts' fields).
 meshpay:
   rate-limit:
     capacity: 10
