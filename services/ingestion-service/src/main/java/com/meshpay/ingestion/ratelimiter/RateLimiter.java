@@ -1,4 +1,4 @@
-package com.meshpay.ingestion.rate.limiter;
+package com.meshpay.ingestion.ratelimiter;
 
 /**
  * Interface for rate limiting operations.

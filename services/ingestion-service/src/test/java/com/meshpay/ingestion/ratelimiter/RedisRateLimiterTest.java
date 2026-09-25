@@ -1,4 +1,4 @@
-package com.meshpay.ingestion.rate.limiter;
+package com.meshpay.ingestion.ratelimiter;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;

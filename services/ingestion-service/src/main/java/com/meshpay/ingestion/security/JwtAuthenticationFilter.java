@@ -1,7 +1,7 @@
 package com.meshpay.ingestion.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.meshpay.ingestion.rate.limiter.RateLimiter;
+import com.meshpay.ingestion.ratelimiter.RateLimiter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;

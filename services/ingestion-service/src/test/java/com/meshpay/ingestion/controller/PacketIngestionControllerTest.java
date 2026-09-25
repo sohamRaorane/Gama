@@ -29,7 +29,7 @@ class PacketIngestionControllerTest {
     @Test
     void shouldAcceptValidPacketAndReturn202() throws Exception {
         IngestionResponse response = IngestionResponse.acknowledged("550e8400-e29b-41d4-a716-446655440000");
-        when(ingestionService.ingest(any())).thenReturn(response);
+        when(ingestionService.ingest(any(), any())).thenReturn(response);
 
         mockMvc.perform(post("/api/v1/packets")
                         .contentType(MediaType.APPLICATION_JSON)

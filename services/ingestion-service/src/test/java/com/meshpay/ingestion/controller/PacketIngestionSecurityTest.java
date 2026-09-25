@@ -2,7 +2,7 @@ package com.meshpay.ingestion.controller;
 
 import com.meshpay.ingestion.config.SecurityConfig;
 import com.meshpay.ingestion.dto.IngestionResponse;
-import com.meshpay.ingestion.rate.limiter.RateLimiter;
+import com.meshpay.ingestion.ratelimiter.RateLimiter;
 import com.meshpay.ingestion.security.JwtTokenProvider;
 import com.meshpay.ingestion.service.IngestionService;
 import io.jsonwebtoken.Jwts;
@@ -63,7 +63,7 @@ class PacketIngestionSecurityTest {
     void setUp() {
         key = Keys.hmacShaKeyFor(TEST_SECRET.getBytes(StandardCharsets.UTF_8));
         org.mockito.Mockito.lenient().when(rateLimiter.attemptConsume(any())).thenReturn(true);
-        org.mockito.Mockito.lenient().when(ingestionService.ingest(any()))
+        org.mockito.Mockito.lenient().when(ingestionService.ingest(any(), any()))
                 .thenReturn(IngestionResponse.acknowledged("test-packet-id"));
     }
 
@@ -85,7 +85,7 @@ class PacketIngestionSecurityTest {
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.error").value("UNAUTHORIZED"));
 
-        verify(ingestionService, never()).ingest(any());
+        verify(ingestionService, never()).ingest(any(), any());
     }
 
     @Test
@@ -97,7 +97,7 @@ class PacketIngestionSecurityTest {
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.error").value("UNAUTHORIZED"));
 
-        verify(ingestionService, never()).ingest(any());
+        verify(ingestionService, never()).ingest(any(), any());
     }
 
     @Test
@@ -111,7 +111,7 @@ class PacketIngestionSecurityTest {
                 .andExpect(status().isAccepted())
                 .andExpect(jsonPath("$.status").value("RECEIVED"));
 
-        verify(ingestionService).ingest(any());
+        verify(ingestionService).ingest(any(), any());
     }
 
     @Test
@@ -126,7 +126,7 @@ class PacketIngestionSecurityTest {
                 .andExpect(status().isTooManyRequests())
                 .andExpect(jsonPath("$.error").value("RATE_LIMIT_EXCEEDED"));
 
-        verify(ingestionService, never()).ingest(any());
+        verify(ingestionService, never()).ingest(any(), any());
     }
 
     @Test

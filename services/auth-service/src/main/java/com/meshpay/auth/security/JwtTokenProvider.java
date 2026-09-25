@@ -70,10 +70,6 @@ public class JwtTokenProvider {
                 .parseSignedClaims(token)
                 .getPayload();
     }
-
-    public long ExpirationMs() {
-        return expirationMs;
-    }
     /*
     public SecretKey getSigningKey() {
         return signingKey;

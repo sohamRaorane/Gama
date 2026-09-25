@@ -1,4 +1,4 @@
-package com.meshpay.ingestion.rate.limiter;
+package com.meshpay.ingestion.ratelimiter;
 
 import java.time.Instant;
 import java.util.List;
@@ -56,6 +56,15 @@ public class RedisRateLimiter implements RateLimiter {
         this.consumeScript = new DefaultRedisScript<>(LUA_SCRIPT, Long.class);
     }
 
+    /**
+     * Attempt to consume one token from the bridge's rate-limit bucket.
+     *
+     * <p><b>Fail-closed on Redis outage:</b> if Redis is unreachable or the Lua
+     * script errors, this method returns {@code false} (request rejected with 429).
+     * This prevents abuse during rate-limiter downtime but means legitimate
+     * packets are also rejected while Redis is down. A circuit-breaker pattern
+     * (e.g. Resilience4j) could degrade gracefully in the future.</p>
+     */
     @Override
     public boolean attemptConsume(String bridgeId) {
         String key = KEY_PREFIX + bridgeId;
@@ -66,6 +75,8 @@ public class RedisRateLimiter implements RateLimiter {
                     String.valueOf(Instant.now().toEpochMilli()));
             return result != null && result == 1L;
         } catch (Exception e) {
+            // Fail-closed: reject request when Redis is unavailable rather than
+            // allowing unlimited traffic through without rate limiting.
             log.warning("Rate limiter error for bridge " + bridgeId + ": " + e.getMessage());
             return false;
         }

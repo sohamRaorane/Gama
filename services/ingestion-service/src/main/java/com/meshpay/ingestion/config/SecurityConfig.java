@@ -1,7 +1,7 @@
 package com.meshpay.ingestion.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.meshpay.ingestion.rate.limiter.RateLimiter;
+import com.meshpay.ingestion.ratelimiter.RateLimiter;
 import com.meshpay.ingestion.security.JwtAuthenticationFilter;
 import com.meshpay.ingestion.security.JwtTokenProvider;
 import org.springframework.context.annotation.Bean;

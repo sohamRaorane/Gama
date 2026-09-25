@@ -18,6 +18,10 @@ import org.hibernate.annotations.UpdateTimestamp;
 /**
  * Represents an encrypted mesh packet received from a bridge.
  * The packet is stored as-is and will be decrypted by downstream services.
+ *
+ * The timestamp field stores the bridge-reported submission time (ISO 8601).
+ * This is collected for Phase 3 freshness/replay validation — it lets downstream
+ * services detect stale or replayed packets by comparing against receivedAt.
  */
 @Entity
 @Table(name = "packets")
@@ -52,6 +56,14 @@ public class IngestedPacket {
     @Column(name = "status", nullable = false)
     private String status;
 
+    /**
+     * Bridge-reported submission timestamp (ISO 8601, e.g. "2026-09-14T12:00:00Z").
+     * NOT a server-side timestamp — this is what the bridge claims as the send time.
+     * Used by Phase 3 for freshness/replay detection (compare against created_at).
+     */
+    @Column(name = "timestamp", nullable = false, columnDefinition = "VARCHAR(26)")
+    private String timestamp;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -63,9 +75,17 @@ public class IngestedPacket {
     /**
      * Creates a new IngestedPacket from an incoming request.
      * Assigns a new UUID for the packetId and sets initial status to RECEIVED.
+     *
+     * @param encryptedPayload the AES-GCM encrypted payload from the bridge
+     * @param bridgeId authenticated bridge identity (must match JWT sub claim)
+     * @param senderId optional sender user ID
+     * @param recipientId optional recipient user ID
+     * @param type packet type: PAYMENT, HEARTBEAT, or STATUS
+     * @param timestamp bridge-reported submission time (ISO 8601)
      */
     public static IngestedPacket create(String encryptedPayload, String bridgeId,
-                                         String senderId, String recipientId, String type) {
+                                         String senderId, String recipientId, String type,
+                                         String timestamp) {
         return new IngestedPacket(
                 null,
                 UUID.randomUUID(),
@@ -75,6 +95,7 @@ public class IngestedPacket {
                 recipientId,
                 type,
                 "RECEIVED",
+                timestamp,
                 null,
                 null
         );

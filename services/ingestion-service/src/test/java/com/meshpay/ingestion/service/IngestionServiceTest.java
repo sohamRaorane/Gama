@@ -13,6 +13,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -39,7 +40,7 @@ class IngestionServiceTest {
                 "PAYMENT"
         );
 
-        IngestionResponse response = ingestionService.ingest(request);
+        IngestionResponse response = ingestionService.ingest(request, "bridge-001");
 
         assertNotNull(response);
         assertNotNull(response.packetId());
@@ -57,6 +58,7 @@ class IngestionServiceTest {
         assertEquals("user-456", saved.getRecipientId());
         assertEquals("PAYMENT", saved.getType());
         assertEquals("RECEIVED", saved.getStatus());
+        assertEquals("2026-09-14T12:00:00Z", saved.getTimestamp());
     }
 
     @Test
@@ -72,11 +74,48 @@ class IngestionServiceTest {
                 "HEARTBEAT"
         );
 
-        IngestionResponse first = ingestionService.ingest(request);
-        IngestionResponse second = ingestionService.ingest(request);
+        IngestionResponse first = ingestionService.ingest(request, "bridge-001");
+        IngestionResponse second = ingestionService.ingest(request, "bridge-001");
 
         assertNotNull(first.packetId());
         assertNotNull(second.packetId());
         assertEquals(false, first.packetId().equals(second.packetId()));
+    }
+
+    @Test
+    void shouldRejectSpoofedBridgeIdentity() {
+        // Bridge authenticated as bridge-001 tries to claim bridge-999 in body
+        IngestionRequest request = new IngestionRequest(
+                "encrypted-data",
+                "bridge-999",
+                "2026-09-14T12:00:00Z",
+                "user-123",
+                "user-456",
+                "PAYMENT"
+        );
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> ingestionService.ingest(request, "bridge-001"));
+
+        // Should never reach the repository
+        org.mockito.Mockito.verifyNoInteractions(repository);
+        assertEquals(true, ex.getMessage().contains("mismatch"));
+    }
+
+    @Test
+    void shouldRejectWhenAuthenticatedBridgeIdIsNull() {
+        IngestionRequest request = new IngestionRequest(
+                "encrypted-data",
+                "bridge-001",
+                "2026-09-14T12:00:00Z",
+                null,
+                null,
+                "HEARTBEAT"
+        );
+
+        assertThrows(IllegalArgumentException.class,
+                () -> ingestionService.ingest(request, null));
+
+        org.mockito.Mockito.verifyNoInteractions(repository);
     }
 }
