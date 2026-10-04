@@ -28,6 +28,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
  * - VALIDATION_ERROR (400): Bean Validation failures from @Valid on IngestionRequest
  * - MALFORMED_REQUEST (400): Missing or unparseable JSON body
  * - BRIDGE_ID_MISMATCH (400): Bridge submitted packet claiming a different identity than JWT
+ * - DUPLICATE_PACKET (409): Packet fingerprint already claimed in Redis idempotency window
  * - INTERNAL_ERROR (500): Any unexpected exception (catch-all)
  *
  * Note: 401 and 429 responses are NOT handled here — they are written directly by
@@ -71,6 +72,18 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, Object>> handleBadRequest(IllegalArgumentException ex,
                                                                 HttpServletRequest request) {
         return buildResponse(HttpStatus.BAD_REQUEST, "BRIDGE_ID_MISMATCH", ex.getMessage(), request.getRequestURI());
+    }
+
+    /**
+     * Handles duplicate packet submissions from the Redis idempotency claim (Day 12).
+     * The packet fingerprint was already claimed within the TTL window, so the
+     * submission is rejected before any database write. Redis internals are not
+     * exposed — only the packetHash already known to the caller is retained.
+     */
+    @ExceptionHandler(DuplicatePacketException.class)
+    public ResponseEntity<Map<String, Object>> handleDuplicate(DuplicatePacketException ex,
+                                                               HttpServletRequest request) {
+        return buildResponse(HttpStatus.CONFLICT, "DUPLICATE_PACKET", ex.getMessage(), request.getRequestURI());
     }
 
     /**

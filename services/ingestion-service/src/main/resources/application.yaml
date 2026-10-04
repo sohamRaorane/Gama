@@ -82,7 +82,16 @@ app:
 # refill-rate: tokens added per second after burst is exhausted.
 # Defaults: capacity=10 (burst of 10), refill=5/sec (1 token per 200ms).
 # Redis key format: rate_limit:{bridgeId} (hash with 'tokens' and 'ts' fields).
+#
+# --- Packet idempotency (Day 12, Redis SET NX EX claim) ---
+# ttl-seconds: lifetime of a claimed packet fingerprint so claims expire instead
+#   of accumulating forever. Overridable via IDEMPOTENCY_TTL_SECONDS.
+# Redis key format: packet_hash:{packetHash} (value "claimed").
+# The rate_limit:{bridgeId} and packet_hash:{packetHash} namespaces stay separate:
+# rate limiting is per bridge, idempotency is per logical packet.
 meshpay:
   rate-limit:
     capacity: 10
     refill-rate: 5
+  idempotency:
+    ttl-seconds: ${IDEMPOTENCY_TTL_SECONDS:300}

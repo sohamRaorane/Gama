@@ -2,6 +2,7 @@ package com.meshpay.ingestion.controller;
 
 import com.meshpay.ingestion.config.SecurityConfig;
 import com.meshpay.ingestion.dto.IngestionResponse;
+import com.meshpay.ingestion.exception.DuplicatePacketException;
 import com.meshpay.ingestion.ratelimiter.RateLimiter;
 import com.meshpay.ingestion.security.JwtTokenProvider;
 import com.meshpay.ingestion.service.IngestionService;
@@ -156,5 +157,20 @@ class PacketIngestionSecurityTest {
                                 """))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").value("VALIDATION_ERROR"));
+    }
+
+    @Test
+    void day12DuplicatePacket_returns409OnlyAfterAuthenticationAndRateLimiting() throws Exception {
+        String token = generateToken("bridge-001");
+        when(ingestionService.ingest(any(), any()))
+                .thenThrow(new DuplicatePacketException("a4f5c8d9e0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7"));
+
+        mockMvc.perform(post("/api/v1/packets")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(VALID_BODY))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error").value("DUPLICATE_PACKET"))
+                .andExpect(jsonPath("$.message").value("Packet has already been submitted"));
     }
 }
