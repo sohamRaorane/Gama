@@ -20,7 +20,15 @@ import lombok.Builder;
 @Builder
 public record IngestionRequest(
 
-    /** Base64-encoded AES-GCM ciphertext of the payment instruction + ephemeral key. */
+    /**
+     * The encrypted mesh packet exactly as HybridCryptoService.encrypt(...)
+     * produced it, encoded as Base64(JSON of MeshPacket):
+     * {packetId, wrappedAesKey, iv, ciphertext, ttl, createdAt}.
+     *
+     * Decoded by MeshPacketCodec and decrypted by PacketDecryptionService
+     * (which delegates to HybridCryptoService) — but only AFTER the Redis
+     * idempotency claim and the freshness check both succeed.
+     */
     @NotBlank(message = "encryptedPayload must not be blank")
     String encryptedPayload,
 

@@ -4,6 +4,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -29,6 +30,9 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
  * - MALFORMED_REQUEST (400): Missing or unparseable JSON body
  * - BRIDGE_ID_MISMATCH (400): Bridge submitted packet claiming a different identity than JWT
  * - DUPLICATE_PACKET (409): Packet fingerprint already claimed in Redis idempotency window
+ * - PACKET_EXPIRED (400): Packet timestamp outside the Day 13 freshness window
+ * - INVALID_PACKET_TIMESTAMP (400): Timestamp unparseable or beyond the allowed clock skew
+ * - INVALID_ENCRYPTED_PACKET (400): Fresh claimed packet that HybridCryptoService could not decrypt
  * - INTERNAL_ERROR (500): Any unexpected exception (catch-all)
  *
  * Note: 401 and 429 responses are NOT handled here — they are written directly by
@@ -37,6 +41,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger log = Logger.getLogger(GlobalExceptionHandler.class.getName());
 
     /**
      * Handles Bean Validation failures from @Valid @RequestBody.
@@ -84,6 +90,46 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, Object>> handleDuplicate(DuplicatePacketException ex,
                                                                HttpServletRequest request) {
         return buildResponse(HttpStatus.CONFLICT, "DUPLICATE_PACKET", ex.getMessage(), request.getRequestURI());
+    }
+
+    /**
+     * Handles Day 13 freshness rejection: the packet timestamp is older than
+     * meshpay.packet.freshness-window-seconds. Rejected with 400 (a stale packet
+     * is a client-side problem, not a server fault) and, architecturally, before
+     * HybridCryptoService is ever invoked.
+     */
+    @ExceptionHandler(StalePacketException.class)
+    public ResponseEntity<Map<String, Object>> handleStale(StalePacketException ex,
+                                                           HttpServletRequest request) {
+        return buildResponse(HttpStatus.BAD_REQUEST, "PACKET_EXPIRED", ex.getMessage(), request.getRequestURI());
+    }
+
+    /**
+     * Handles Day 13 timestamp validation failure: unparseable timestamp, or a
+     * timestamp further in the future than meshpay.packet.clock-skew-seconds.
+     * The diagnostic reason stays in the server log only — the client receives
+     * the fixed public message.
+     */
+    @ExceptionHandler(InvalidPacketTimestampException.class)
+    public ResponseEntity<Map<String, Object>> handleInvalidTimestamp(InvalidPacketTimestampException ex,
+                                                                      HttpServletRequest request) {
+        log.warning("Rejected packet with invalid timestamp: " + ex.getReason());
+        return buildResponse(HttpStatus.BAD_REQUEST, "INVALID_PACKET_TIMESTAMP", ex.getMessage(),
+                request.getRequestURI());
+    }
+
+    /**
+     * Handles decryption failure on an otherwise claimed + fresh packet (Day 13):
+     * undecodable payload, tampered ciphertext, or a key mismatch.
+     * The cryptographic exception type, its message, and any key material stay
+     * server-side (logged as detail); the client only sees a generic 400.
+     */
+    @ExceptionHandler(InvalidEncryptedPacketException.class)
+    public ResponseEntity<Map<String, Object>> handleInvalidEncryptedPacket(InvalidEncryptedPacketException ex,
+                                                                            HttpServletRequest request) {
+        log.warning("Rejected undecryptable packet: " + ex.getDetail());
+        return buildResponse(HttpStatus.BAD_REQUEST, "INVALID_ENCRYPTED_PACKET", ex.getMessage(),
+                request.getRequestURI());
     }
 
     /**

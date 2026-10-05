@@ -227,7 +227,12 @@ services:
   # Ingestion Service — packet ingestion from bridges
   ingestion-service:
 
-    build: ./services/ingestion-service
+    # Context is the repo root: ingestion-service depends on services/mesh-crypto
+    # (HybridCryptoService), so the image build must see both modules.
+    build:
+      context: .
+      dockerfile: services/ingestion-service/Dockerfile
+
     container_name: meshpay-ingestion
 
     ports:
@@ -239,6 +244,9 @@ services:
       DB_PASSWORD: ${POSTGRES_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
       REDIS_HOST: redis
+      # Day 13: RSA private key (base64 PKCS#8) for HybridCryptoService.decrypt.
+      # The service fails fast at startup if this is missing.
+      MESH_CRYPTO_PRIVATE_KEY: ${MESH_CRYPTO_PRIVATE_KEY}
 
     depends_on:
       postgres:

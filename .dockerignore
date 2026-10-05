@@ -1,0 +1,8 @@
+# Keeps secrets and build output out of the Docker build context.
+.git
+**/.env
+**/target
+**/.idea
+**/.vscode
+node_modules
+*.log

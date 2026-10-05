@@ -89,9 +89,29 @@ app:
 # Redis key format: packet_hash:{packetHash} (value "claimed").
 # The rate_limit:{bridgeId} and packet_hash:{packetHash} namespaces stay separate:
 # rate limiting is per bridge, idempotency is per logical packet.
+#
+# --- Packet freshness (Day 13) ---
+# freshness-window-seconds: max age of a packet timestamp, measured in UTC against
+#   the injected Clock. Rule (lower bound inclusive):
+#     now - freshness-window-seconds <= timestamp <= now + clock-skew-seconds
+#   Default 300s matches HybridCryptoService's packet TTL and the idempotency TTL.
+# clock-skew-seconds: how far into the future a timestamp may point. Small and
+#   explicit on purpose — a future timestamp must never bypass the age check.
+# Order in the pipeline: claim → freshness → decryption. Stale ⇒ 400 PACKET_EXPIRED.
+#
+# --- Packet decryption (Day 13) ---
+# private-key: base64-encoded PKCS#8 RSA private key used ONLY by
+#   HybridCryptoService.decrypt(...) (via PacketDecryptionService).
+#   Supplied through MESH_CRYPTO_PRIVATE_KEY (never committed; see .env.example).
+#   The service fails fast at startup if it is missing or malformed.
 meshpay:
   rate-limit:
     capacity: 10
     refill-rate: 5
   idempotency:
     ttl-seconds: ${IDEMPOTENCY_TTL_SECONDS:300}
+  packet:
+    freshness-window-seconds: ${FRESHNESS_WINDOW_SECONDS:300}
+    clock-skew-seconds: ${PACKET_CLOCK_SKEW_SECONDS:30}
+  crypto:
+    private-key: ${MESH_CRYPTO_PRIVATE_KEY:}

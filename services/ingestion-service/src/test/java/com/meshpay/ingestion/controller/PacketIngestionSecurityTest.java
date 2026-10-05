@@ -3,6 +3,7 @@ package com.meshpay.ingestion.controller;
 import com.meshpay.ingestion.config.SecurityConfig;
 import com.meshpay.ingestion.dto.IngestionResponse;
 import com.meshpay.ingestion.exception.DuplicatePacketException;
+import com.meshpay.ingestion.exception.StalePacketException;
 import com.meshpay.ingestion.ratelimiter.RateLimiter;
 import com.meshpay.ingestion.security.JwtTokenProvider;
 import com.meshpay.ingestion.service.IngestionService;
@@ -172,5 +173,34 @@ class PacketIngestionSecurityTest {
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.error").value("DUPLICATE_PACKET"))
                 .andExpect(jsonPath("$.message").value("Packet has already been submitted"));
+    }
+
+    @Test
+    void day13StalePacket_returns400OnlyAfterAuthenticationAndRateLimiting() throws Exception {
+        String token = generateToken("bridge-001");
+        when(ingestionService.ingest(any(), any())).thenThrow(new StalePacketException());
+
+        mockMvc.perform(post("/api/v1/packets")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(VALID_BODY))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.error").value("PACKET_EXPIRED"))
+                .andExpect(jsonPath("$.message").value("Packet has expired"));
+
+        // Auth (401 gate) and rate limiting (429 gate) both ran before the freshness gate.
+        verify(rateLimiter).attemptConsume("bridge-001");
+        verify(ingestionService).ingest(any(), any());
+    }
+
+    @Test
+    void day13_unauthenticatedRequestNeverReachesFreshnessOrDecryption() throws Exception {
+        mockMvc.perform(post("/api/v1/packets")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(VALID_BODY))
+                .andExpect(status().isUnauthorized());
+
+        verify(ingestionService, never()).ingest(any(), any());
     }
 }
